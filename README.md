@@ -121,8 +121,8 @@ Toko Academy operates across multiple departments and requires a unified interna
 
 ```bash
 # Clone the repository
-git clone https://github.com/toko-academy/toko-360.git
-cd toko-360
+git clone https://github.com/ABugDrone/toko-360-staff-portal.git
+cd toko-360-staff-portal
 
 # Install dependencies
 npm install
