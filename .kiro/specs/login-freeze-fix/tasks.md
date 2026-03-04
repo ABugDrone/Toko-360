@@ -1,0 +1,90 @@
+# Implementation Plan
+
+- [-] 1. Write bug condition exploration test
+  - **Property 1: Fault Condition** - UI Feedback and Navigation After Login
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases: valid credentials that should navigate, invalid credentials that should show errors
+  - Test that when credentials are submitted (valid or invalid) and authentication completes, the UI either navigates to dashboard OR displays an error message
+  - Test implementation details from Fault Condition in design:
+    - Input: { staffId: string, password: string, formEvent: FormEvent }
+    - Bug condition: staffId and password are not empty, form is submitted, authentication completes, but navigation does NOT occur AND error is NOT displayed
+  - The test assertions should match the Expected Behavior Properties from design:
+    - For valid credentials: verify navigation to '/dashboard' occurs
+    - For invalid credentials: verify error message is displayed
+    - For both cases: verify loading state is cleared (isLoading === false)
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause:
+    - Navigation to dashboard does not occur after successful authentication
+    - Error messages are not displayed after failed authentication
+    - Loading spinner may remain visible indefinitely
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Authentication Logic Unchanged
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for authentication and session management:
+    - Credential validation against Supabase database
+    - Session token creation and storage in localStorage
+    - User state updates in auth-context after successful login
+    - Error detection for database connection failures
+    - Loading state management (isLoading flag)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Test that credential validation produces same results (valid/invalid detection)
+    - Test that session tokens are created and stored correctly
+    - Test that user state is updated in auth-context
+    - Test that database errors are detected properly
+    - Test that loading state is managed correctly (set to true during auth)
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4_
+
+- [ ] 3. Fix for login UI freeze after credential submission
+
+  - [ ] 3.1 Implement the fix in app/auth-context.tsx and app/page.tsx
+    - **File 1: app/auth-context.tsx** - Ensure session is stored before state update
+      - Move setAuthSession call to happen before setUser call (currently after line 47)
+      - This ensures localStorage has the session when protected routes check authentication
+    - **File 2: app/page.tsx** - Fix navigation timing to wait for auth state propagation
+      - Option A: Add setTimeout with minimal delay (0-50ms) after login to allow React state updates
+      - Option B: Use useEffect to watch isAuthenticated and trigger navigation when it becomes true
+      - Option C: Add a ref or flag to track when auth state is ready before navigating
+      - Verify isAuthenticated is true before calling router.push('/dashboard')
+      - Maintain existing try-catch-finally structure (error handling is already correct)
+    - _Bug_Condition: isBugCondition(input) where input.staffId IS NOT EMPTY AND input.password IS NOT EMPTY AND formEvent.type === 'submit' AND authenticationCompletes(input.staffId, input.password) AND NOT (navigationOccurs() OR errorDisplayed())_
+    - _Expected_Behavior: FOR ALL input WHERE isBugCondition(input) DO result := handleSubmit_fixed(input); ASSERT (navigationOccurs() OR errorDisplayed()); ASSERT loadingState === false_
+    - _Preservation: Authentication logic, session management, credential validation, error detection, and loading state management must remain unchanged_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4_
+
+  - [ ] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - UI Feedback and Navigation After Login
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that for valid credentials, navigation to '/dashboard' occurs
+    - Verify that for invalid credentials, error message is displayed
+    - Verify that loading state is cleared in both cases
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [ ] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** - Authentication Logic Unchanged
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions):
+      - Credential validation produces same results
+      - Session tokens are created and stored correctly
+      - User state is updated in auth-context
+      - Database errors are detected properly
+      - Loading state management works correctly
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

@@ -1,0 +1,160 @@
+{
+  "defaultPassword": "54321",
+  "note": "All accounts use the default password for testing purposes",
+  "masterAdmins": [
+    {
+      "staffId": "ADMIN001",
+      "name": "Daniel Ishaku",
+      "email": "daniel.ishaku@toko360.com",
+      "department": "Business Intelligence",
+      "role": "Master Administrator",
+      "permissions": "Full system access - all permissions enabled"
+    },
+    {
+      "staffId": "ADMIN002",
+      "name": "Sunshine",
+      "email": "sunshine@toko360.com",
+      "department": "Business Intelligence",
+      "role": "Master Administrator",
+      "permissions": "Full system access - all permissions enabled"
+    }
+  ],
+  "accounts": [
+    {
+      "department": "Business Intelligence",
+      "users": [
+        {
+          "staffId": "AR001",
+          "name": "Arinze Raphael",
+          "email": "arinze.raphael@toko360.com",
+          "role": "Business Intelligence Analyst"
+        },
+        {
+          "staffId": "AR002",
+          "name": "Adaeze Rita",
+          "email": "adaeze.rita@toko360.com",
+          "role": "Data Analyst"
+        }
+      ]
+    },
+    {
+      "department": "Sales & Marketing",
+      "users": [
+        {
+          "staffId": "SJ001",
+          "name": "Samuel Johnson",
+          "email": "samuel.johnson@toko360.com",
+          "role": "Sales Manager"
+        },
+        {
+          "staffId": "SJ002",
+          "name": "Sarah James",
+          "email": "sarah.james@toko360.com",
+          "role": "Marketing Specialist"
+        }
+      ]
+    },
+    {
+      "department": "Operations",
+      "users": [
+        {
+          "staffId": "OP001",
+          "name": "Oluwaseun Peters",
+          "email": "oluwaseun.peters@toko360.com",
+          "role": "Operations Manager"
+        },
+        {
+          "staffId": "OP002",
+          "name": "Onyeka Paul",
+          "email": "onyeka.paul@toko360.com",
+          "role": "Operations Coordinator"
+        }
+      ]
+    },
+    {
+      "department": "Customer Service",
+      "users": [
+        {
+          "staffId": "CS001",
+          "name": "Chioma Stephen",
+          "email": "chioma.stephen@toko360.com",
+          "role": "Customer Service Lead"
+        },
+        {
+          "staffId": "CS002",
+          "name": "Chiamaka Samuel",
+          "email": "chiamaka.samuel@toko360.com",
+          "role": "Customer Service Representative"
+        }
+      ]
+    },
+    {
+      "department": "Finance",
+      "users": [
+        {
+          "staffId": "FN001",
+          "name": "Funmilayo Nelson",
+          "email": "funmilayo.nelson@toko360.com",
+          "role": "Finance Manager"
+        },
+        {
+          "staffId": "FN002",
+          "name": "Felix Nnamdi",
+          "email": "felix.nnamdi@toko360.com",
+          "role": "Accountant"
+        }
+      ]
+    },
+    {
+      "department": "Human Resources",
+      "users": [
+        {
+          "staffId": "HR001",
+          "name": "Hannah Roberts",
+          "email": "hannah.roberts@toko360.com",
+          "role": "HR Manager"
+        },
+        {
+          "staffId": "HR002",
+          "name": "Henry Richard",
+          "email": "henry.richard@toko360.com",
+          "role": "HR Coordinator"
+        }
+      ]
+    },
+    {
+      "department": "IT",
+      "users": [
+        {
+          "staffId": "IT001",
+          "name": "Ibrahim Thomas",
+          "email": "ibrahim.thomas@toko360.com",
+          "role": "IT Manager"
+        },
+        {
+          "staffId": "IT002",
+          "name": "Ifeoma Timothy",
+          "email": "ifeoma.timothy@toko360.com",
+          "role": "IT Support Specialist"
+        }
+      ]
+    },
+    {
+      "department": "Logistics",
+      "users": [
+        {
+          "staffId": "LG001",
+          "name": "Lawrence Gabriel",
+          "email": "lawrence.gabriel@toko360.com",
+          "role": "Logistics Manager"
+        },
+        {
+          "staffId": "LG002",
+          "name": "Linda George",
+          "email": "linda.george@toko360.com",
+          "role": "Logistics Coordinator"
+        }
+      ]
+    }
+  ]
+}
