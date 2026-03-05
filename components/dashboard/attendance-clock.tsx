@@ -5,7 +5,7 @@ import { Calendar, Clock, LogIn, LogOut, Timer, CalendarDays, Loader2 } from 'lu
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/app/auth-context';
 import { getAttendanceRecords, addAttendanceRecord, updateAttendanceRecord } from '@/lib/storage';
-import { AttendanceRecord } from '@/lib/types';
+import { AttendanceRecord, AttendanceStatus } from '@/lib/types';
 import { mapDatabaseError } from '@/lib/error-handler';
 import { showErrorToast, showSuccessToast } from '@/lib/error-toast';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +49,7 @@ export function AttendanceClock() {
           setTodayRecord(record);
           if (record.checkInTime && !record.checkOutTime) {
             setCheckInTime(new Date(record.checkInTime));
-            setCheckInStatus(record.status === 'on_time' || record.status === 'late' ? 'approved' : 'pending_approval');
+            setCheckInStatus(record.status === 'on_time' || record.status === 'late' || record.status === 'very_late' ? 'approved' : 'pending_approval');
           } else if (record.checkOutTime) {
             setCheckInStatus('checked_out');
           }
@@ -57,14 +57,22 @@ export function AttendanceClock() {
       } catch (error: any) {
         const dbError = mapDatabaseError(error);
         showErrorToast(dbError, {
-          onRetry: () => loadTodayRecord(),
+          onRetry: () => {
+            // Non-blocking retry
+            setTimeout(() => loadTodayRecord(), 100);
+          },
         });
       } finally {
         setIsLoadingRecords(false);
       }
     };
     
-    loadTodayRecord();
+    // Non-blocking load
+    const timeoutId = setTimeout(() => {
+      loadTodayRecord();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [user]);
 
   // Calculate elapsed time
@@ -93,15 +101,23 @@ export function AttendanceClock() {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     
-    // Check if it's late (after 9:00 AM)
+    // Determine attendance status based on time
+    // Before 9:00 AM = on_time
+    // 9:00 AM - 9:59 AM = late
+    // 10:00 AM or later = very_late
     const hour = now.getHours();
-    const isLate = hour >= 9;
+    let status: AttendanceStatus = 'on_time';
+    if (hour >= 10) {
+      status = 'very_late';
+    } else if (hour >= 9) {
+      status = 'late';
+    }
     
     const newRecord: Omit<AttendanceRecord, 'id'> = {
       staffId: user.staffId,
       date: today,
       checkInTime: now.toISOString(),
-      status: isLate ? 'late' : 'on_time',
+      status: status,
       department: user.department,
       productivity: 0,
     };
@@ -122,7 +138,7 @@ export function AttendanceClock() {
         // Auto-approve after 3 seconds (simulating admin approval)
         setTimeout(async () => {
           setCheckInStatus('approved');
-          await updateAttendanceRecord(createdRecord.id, { status: isLate ? 'late' : 'on_time' });
+          await updateAttendanceRecord(createdRecord.id, { status: status });
         }, 3000);
       }
     } catch (error: any) {
@@ -195,14 +211,22 @@ export function AttendanceClock() {
       } catch (error: any) {
         const dbError = mapDatabaseError(error);
         showErrorToast(dbError, {
-          onRetry: () => loadMonthRecords(),
+          onRetry: () => {
+            // Non-blocking retry
+            setTimeout(() => loadMonthRecords(), 100);
+          },
         });
       } finally {
         setIsLoadingRecords(false);
       }
     };
     
-    loadMonthRecords();
+    // Non-blocking load
+    const timeoutId = setTimeout(() => {
+      loadMonthRecords();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [user, selectedDate]);
 
   return (
@@ -415,7 +439,7 @@ export function AttendanceClock() {
           </div>
 
           {/* Attendance Summary */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="p-3 rounded-lg text-center transition-colors duration-300" style={{ backgroundColor: 'var(--theme-background)', borderWidth: '1px', borderColor: 'var(--theme-border)' }}>
               <div className="text-2xl font-bold transition-colors duration-300" style={{ color: 'var(--theme-accent)' }}>
                 {monthRecords.filter(r => r.status === 'on_time').length}
@@ -427,6 +451,12 @@ export function AttendanceClock() {
                 {monthRecords.filter(r => r.status === 'late').length}
               </div>
               <div className="text-xs transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.6 }}>Late</div>
+            </div>
+            <div className="p-3 rounded-lg text-center transition-colors duration-300" style={{ backgroundColor: 'var(--theme-background)', borderWidth: '1px', borderColor: 'var(--theme-border)' }}>
+              <div className="text-2xl font-bold text-red-600">
+                {monthRecords.filter(r => r.status === 'very_late').length}
+              </div>
+              <div className="text-xs transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.6 }}>Very Late</div>
             </div>
             <div className="p-3 rounded-lg text-center transition-colors duration-300" style={{ backgroundColor: 'var(--theme-background)', borderWidth: '1px', borderColor: 'var(--theme-border)' }}>
               <div className="text-2xl font-bold text-red-500">
@@ -467,6 +497,7 @@ export function AttendanceClock() {
                     <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       record.status === 'on_time' ? 'bg-green-500/20 text-green-500' :
                       record.status === 'late' ? 'bg-orange-500/20 text-orange-500' :
+                      record.status === 'very_late' ? 'bg-red-600/20 text-red-600' :
                       record.status === 'absent' ? 'bg-red-500/20 text-red-500' :
                       'bg-blue-500/20 text-blue-500'
                     }`}>

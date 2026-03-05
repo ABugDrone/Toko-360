@@ -29,7 +29,6 @@ export default function AdminConfigPage() {
     role: 'staff' as UserRole,
   });
   const [generalSettings, setGeneralSettings] = useState({
-    lateArrivalThreshold: 15,
     darkModeForced: true,
     systemNotifications: true,
   });
@@ -39,6 +38,7 @@ export default function AdminConfigPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Fetch both in parallel
         const [fetchedUsers, fetchedDepartments] = await Promise.all([
           getAllUsers(),
           getDepartments()
@@ -56,7 +56,13 @@ export default function AdminConfigPage() {
         setIsLoading(false);
       }
     };
-    loadData();
+    
+    // Non-blocking load
+    const timeoutId = setTimeout(() => {
+      loadData();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   if (user?.role !== 'admin') {
@@ -229,17 +235,6 @@ export default function AdminConfigPage() {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-200 mb-2">Late Arrival Threshold (minutes)</label>
-              <Input
-                type="number"
-                value={generalSettings.lateArrivalThreshold}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, lateArrivalThreshold: parseInt(e.target.value) })}
-                className="bg-slate-800 border-slate-700 text-white max-w-xs"
-              />
-              <p className="text-xs text-slate-400 mt-1">Tolerance before flagging as 'late'</p>
-            </div>
-
             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
               <div>
                 <p className="font-semibold text-white mb-1">System-wide Notifications</p>
@@ -299,8 +294,12 @@ export default function AdminConfigPage() {
           <h3 className="text-lg font-bold text-cyan-400 uppercase tracking-wider">Check-in Rules</h3>
           <div className="space-y-3">
             <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-              <p className="text-sm text-white mb-1"><span className="font-bold">Late Arrival Threshold:</span> {generalSettings.lateArrivalThreshold} minutes</p>
-              <p className="text-xs text-slate-400">Tolerance before flagging as 'Late'</p>
+              <p className="text-sm text-white mb-1"><span className="font-bold">Attendance Thresholds:</span></p>
+              <ul className="text-xs text-slate-400 mt-2 space-y-1 ml-4">
+                <li>• Before 9:00 AM = On Time</li>
+                <li>• 9:00 AM - 9:59 AM = Late</li>
+                <li>• 10:00 AM or later = Very Late</li>
+              </ul>
             </div>
             <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
               <p className="text-sm text-white mb-1"><span className="font-bold">Attendance Method:</span> IN-APP CHECK-IN</p>
@@ -474,15 +473,19 @@ export default function AdminConfigPage() {
                     <td className="px-4 py-3 flex gap-2">
                       <button 
                         onClick={() => startEditUser(u)}
-                        className="transition-all duration-300 hover:scale-110" 
-                        style={{ color: 'var(--theme-text)', opacity: 0.6 }}
+                        disabled={isSubmitting}
+                        className="p-2 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed" 
+                        style={{ color: 'var(--theme-accent)' }}
+                        title="Edit user"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(u.id)}
-                        className="transition-all duration-300 hover:scale-110 hover:text-red-500" 
-                        style={{ color: 'var(--theme-text)', opacity: 0.6 }}
+                        disabled={isSubmitting}
+                        className="p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed" 
+                        style={{ color: '#ef4444' }}
+                        title="Delete user"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

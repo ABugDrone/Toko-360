@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   approval_status VARCHAR(20) DEFAULT 'pending',
   approved_by VARCHAR(50),
   approved_at TIMESTAMP,
+  feedback TEXT,
   productivity INTEGER CHECK (productivity >= 0 AND productivity <= 100),
   department VARCHAR(100) NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),

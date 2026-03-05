@@ -17,6 +17,8 @@ export default function AttendanceApprovalsPage() {
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { toast } = useToast();
 
   const loadPendingRecords = async () => {
@@ -28,13 +30,19 @@ export default function AttendanceApprovalsPage() {
       } else {
         const dbError = mapDatabaseError(result.error);
         showErrorToast(dbError, {
-          onRetry: () => loadPendingRecords(),
+          onRetry: () => {
+            // Non-blocking retry
+            setTimeout(() => loadPendingRecords(), 100);
+          },
         });
       }
     } catch (error: any) {
       const dbError = mapDatabaseError(error);
       showErrorToast(dbError, {
-        onRetry: () => loadPendingRecords(),
+        onRetry: () => {
+          // Non-blocking retry
+          setTimeout(() => loadPendingRecords(), 100);
+        },
       });
     } finally {
       setLoading(false);
@@ -42,7 +50,12 @@ export default function AttendanceApprovalsPage() {
   };
 
   useEffect(() => {
-    loadPendingRecords();
+    // Non-blocking load
+    const timeoutId = setTimeout(() => {
+      loadPendingRecords();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   if (user?.role !== 'admin') {
@@ -86,14 +99,28 @@ export default function AttendanceApprovalsPage() {
   const handleReject = async (recordId: string) => {
     if (!user) return;
     
+    if (!feedback.trim()) {
+      showErrorToast({ message: 'Please provide feedback for rejection (max 100 words)', retryable: false });
+      return;
+    }
+
+    // Validate word count (100 words max)
+    const wordCount = feedback.trim().split(/\s+/).length;
+    if (wordCount > 100) {
+      showErrorToast({ message: `Feedback is too long (${wordCount} words). Please limit to 100 words.`, retryable: false });
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      const result = await rejectAttendanceRecord(recordId, user.staffId);
+      const result = await rejectAttendanceRecord(recordId, user.staffId, feedback.trim());
       if (result.success) {
-        showSuccessToast('Attendance record rejected');
+        showSuccessToast('Attendance record rejected with feedback');
         // Refresh the list
         await loadPendingRecords();
         setSelectedRecord(null);
+        setFeedback('');
+        setFeedbackOpen(false);
       } else {
         const dbError = mapDatabaseError(result.error);
         showErrorToast(dbError, {
@@ -114,6 +141,8 @@ export default function AttendanceApprovalsPage() {
     switch (status) {
       case 'late':
         return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'very_late':
+        return 'text-red-600 bg-red-600/10 border-red-600/30';
       case 'absent':
         return 'text-red-400 bg-red-500/10 border-red-500/30';
       case 'on_time':
@@ -127,6 +156,8 @@ export default function AttendanceApprovalsPage() {
     switch (status) {
       case 'late':
         return 'LATE ARRIVAL';
+      case 'very_late':
+        return 'VERY LATE';
       case 'absent':
         return 'ABSENT';
       case 'on_time':
@@ -253,6 +284,24 @@ export default function AttendanceApprovalsPage() {
                 Review this attendance record and decide whether to approve or reject it.
               </p>
 
+              {feedbackOpen && (
+                <div className="mb-6">
+                  <label className="text-red-400 font-semibold text-sm mb-2 block">
+                    Rejection Feedback (Max 100 words) *
+                  </label>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Explain why this attendance is rejected and how to remedy it..."
+                    className="w-full bg-slate-800/60 border border-red-500/30 rounded p-3 text-white text-sm focus:border-red-500/60 focus:outline-none min-h-[100px]"
+                    rows={4}
+                  />
+                  <div className="text-xs text-slate-400 mt-1">
+                    {feedback.trim().split(/\s+/).filter(w => w.length > 0).length} / 100 words
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button
                   onClick={() => handleApprove(selectedRecord.id)}
@@ -272,28 +321,55 @@ export default function AttendanceApprovalsPage() {
                   )}
                 </Button>
 
-                <Button
-                  onClick={() => handleReject(selectedRecord.id)}
-                  disabled={isProcessing}
-                  className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-4 h-4" />
-                      Reject
-                    </>
-                  )}
-                </Button>
+                {!feedbackOpen ? (
+                  <Button
+                    onClick={() => setFeedbackOpen(true)}
+                    disabled={isProcessing}
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => handleReject(selectedRecord.id)}
+                      disabled={isProcessing || !feedback.trim()}
+                      className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Rejecting...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4" />
+                          Send Rejection
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setFeedbackOpen(false);
+                        setFeedback('');
+                      }}
+                      disabled={isProcessing}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg disabled:opacity-50"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
 
                 <Button
-                  onClick={() => setSelectedRecord(null)}
+                  onClick={() => {
+                    setSelectedRecord(null);
+                    setFeedback('');
+                    setFeedbackOpen(false);
+                  }}
                   disabled={isProcessing}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg disabled:opacity-50"
+                  className="bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg px-6 disabled:opacity-50"
                 >
                   Close
                 </Button>

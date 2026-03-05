@@ -43,6 +43,7 @@ export interface DbAttendanceRecord {
   approval_status: string;
   approved_by: string | null;
   approved_at: string | null;
+  feedback: string | null;
   productivity: number | null;
   department: string;
   created_at: string;
@@ -246,7 +247,8 @@ function dbAttendanceToAttendance(dbRecord: DbAttendanceRecord): AttendanceRecor
     department: dbRecord.department as Department,
     approvalStatus: dbRecord.approval_status as 'pending' | 'approved' | 'rejected',
     approvedBy: dbRecord.approved_by || undefined,
-    approvedAt: dbRecord.approved_at || undefined
+    approvedAt: dbRecord.approved_at || undefined,
+    feedback: dbRecord.feedback || undefined
   };
 }
 
@@ -277,7 +279,6 @@ function dbDepartmentToDepartment(dbDept: DbDepartment): DepartmentRecord {
 
 function dbConfigToConfig(dbConfig: DbSystemConfig): SystemConfig {
   return {
-    lateArrivalThreshold: dbConfig.late_arrival_threshold,
     attendanceMethod: dbConfig.attendance_method as 'in_app',
     darkModeForced: dbConfig.dark_mode_forced,
     systemNotificationsEnabled: dbConfig.system_notifications_enabled,
@@ -540,7 +541,8 @@ export async function approveAttendanceRecord(
  */
 export async function rejectAttendanceRecord(
   recordId: string,
-  rejectedBy: string
+  rejectedBy: string,
+  feedback?: string
 ): Promise<ServiceResult<AttendanceRecord>> {
   return handleDatabaseOperation(async () => {
     const { data, error } = await supabase
@@ -549,6 +551,7 @@ export async function rejectAttendanceRecord(
         approval_status: 'rejected',
         approved_by: rejectedBy,
         approved_at: new Date().toISOString(),
+        feedback: feedback || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', recordId)
@@ -569,6 +572,45 @@ export async function getPendingAttendanceRecords(): Promise<ServiceResult<Atten
       .from('attendance_records')
       .select('*')
       .eq('approval_status', 'pending')
+      .order('date', { ascending: false });
+
+    return { 
+      data: data ? data.map((r: any) => dbAttendanceToAttendance(r as DbAttendanceRecord)) : null, 
+      error 
+    };
+  });
+}
+
+/**
+ * Get attendance records by approval status
+ * Requirement 23
+ */
+export async function getAttendanceRecordsByStatus(
+  approvalStatus: 'pending' | 'approved' | 'rejected'
+): Promise<ServiceResult<AttendanceRecord[]>> {
+  return handleDatabaseOperation(async () => {
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('*')
+      .eq('approval_status', approvalStatus)
+      .order('date', { ascending: false });
+
+    return { 
+      data: data ? data.map((r: any) => dbAttendanceToAttendance(r as DbAttendanceRecord)) : null, 
+      error 
+    };
+  });
+}
+
+/**
+ * Get all attendance records with approval status (for comprehensive view)
+ * Requirement 23
+ */
+export async function getAllAttendanceRecordsWithStatus(): Promise<ServiceResult<AttendanceRecord[]>> {
+  return handleDatabaseOperation(async () => {
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('*')
       .order('date', { ascending: false });
 
     return { 
@@ -780,6 +822,45 @@ export async function getPendingReports(): Promise<ServiceResult<WeeklyReport[]>
   });
 }
 
+/**
+ * Get reports by approval status
+ * Requirement 24
+ */
+export async function getReportsByStatus(
+  approvalStatus: 'pending' | 'approved' | 'rejected'
+): Promise<ServiceResult<WeeklyReport[]>> {
+  return handleDatabaseOperation(async () => {
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .select('*')
+      .eq('approval_status', approvalStatus)
+      .order('submitted_at', { ascending: false });
+
+    return { 
+      data: data ? data.map((r: any) => dbReportToReport(r as DbWeeklyReport)) : null, 
+      error 
+    };
+  });
+}
+
+/**
+ * Get all reports with approval status (for comprehensive view)
+ * Requirement 24
+ */
+export async function getAllReportsWithStatus(): Promise<ServiceResult<WeeklyReport[]>> {
+  return handleDatabaseOperation(async () => {
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .select('*')
+      .order('submitted_at', { ascending: false });
+
+    return { 
+      data: data ? data.map((r: any) => dbReportToReport(r as DbWeeklyReport)) : null, 
+      error 
+    };
+  });
+}
+
 // ============================================================================
 // Messaging Service Functions
 // Requirement 17.4, 21
@@ -976,9 +1057,6 @@ export async function updateSystemConfig(
       updated_at: new Date().toISOString()
     };
 
-    if (updates.lateArrivalThreshold !== undefined) {
-      dbUpdates.late_arrival_threshold = updates.lateArrivalThreshold;
-    }
     if (updates.attendanceMethod) {
       dbUpdates.attendance_method = updates.attendanceMethod;
     }
@@ -1133,13 +1211,13 @@ export async function updateEvent(
       updated_at: new Date().toISOString()
     };
 
-    if (updates.title) dbUpdates.title = updates.title;
-    if (updates.description) dbUpdates.description = updates.description;
-    if (updates.eventDate) dbUpdates.event_date = updates.eventDate;
-    if (updates.eventTime) dbUpdates.event_time = updates.eventTime;
-    if (updates.location) dbUpdates.location = updates.location;
-    if (updates.category) dbUpdates.category = updates.category;
-    if (updates.color) dbUpdates.color = updates.color;
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate;
+    if (updates.eventTime !== undefined) dbUpdates.event_time = updates.eventTime;
+    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.color !== undefined) dbUpdates.color = updates.color;
     if (updates.targetDepartments !== undefined) dbUpdates.target_departments = updates.targetDepartments;
 
     const { data, error } = await supabase
@@ -1164,5 +1242,229 @@ export async function deleteEvent(eventId: string): Promise<ServiceResult<null>>
       .eq('id', eventId);
 
     return { data: null, error };
+  });
+}
+
+// ============================================================================
+// Analytics Service Functions for Admin Dashboard
+// ============================================================================
+
+export interface StaffMetrics {
+  staffId: string;
+  staffName: string;
+  department: Department;
+  tasksApproved: number;
+  tasksTotal: number;
+  hoursWorked: number;
+  attendanceRate: number;
+}
+
+export interface AggregatedMetrics {
+  totalStaff: number;
+  avgTasksApproved: number;
+  avgTasksTotal: number;
+  avgHoursWorked: number;
+  avgAttendanceRate: number;
+  totalHoursWorked: number;
+  staffMetrics: StaffMetrics[];
+}
+
+/**
+ * Calculate staff metrics for a given time period
+ * @param period 'day' | 'week' | 'month'
+ * @param date Optional specific date (defaults to today)
+ */
+export async function getStaffMetrics(
+  period: 'day' | 'week' | 'month',
+  date?: Date
+): Promise<ServiceResult<AggregatedMetrics>> {
+  return handleDatabaseOperation(async () => {
+    const targetDate = date || new Date();
+    let startDate: Date;
+    let endDate: Date = new Date(targetDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Calculate date range based on period
+    if (period === 'day') {
+      startDate = new Date(targetDate);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      startDate = new Date(targetDate);
+      startDate.setDate(targetDate.getDate() - targetDate.getDay() + (targetDate.getDay() === 0 ? -6 : 1)); // Monday
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    // Fetch all users
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .neq('role', 'admin');
+
+    if (usersError) return { data: null, error: usersError };
+
+    const users = usersData.map((u: any) => dbUserToUser(u as DbUser));
+
+    // Fetch attendance records for the period
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from('attendance_records')
+      .select('*')
+      .gte('date', startDate.toISOString().split('T')[0])
+      .lte('date', endDate.toISOString().split('T')[0]);
+
+    if (attendanceError) return { data: null, error: attendanceError };
+
+    const attendanceRecords = attendanceData.map((r: any) => dbAttendanceToAttendance(r as DbAttendanceRecord));
+
+    // Fetch reports for the period
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('weekly_reports')
+      .select('*')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    if (reportsError) return { data: null, error: reportsError };
+
+    const reports = reportsData.map((r: any) => dbReportToReport(r as DbWeeklyReport));
+
+    // Calculate metrics for each staff member
+    const staffMetrics: StaffMetrics[] = users.map(user => {
+      // Filter records for this user
+      const userAttendance = attendanceRecords.filter(r => r.staffId === user.staffId);
+      const userReports = reports.filter(r => r.staffId === user.staffId);
+
+      // Calculate tasks
+      const tasksTotal = userReports.length;
+      const tasksApproved = userReports.filter(r => r.approvalStatus === 'approved').length;
+
+      // Calculate hours worked (9am-5pm, Mon-Sat)
+      const hoursWorked = userAttendance.reduce((total, record) => {
+        if (record.checkInTime && record.checkOutTime) {
+          const recordDate = new Date(record.date);
+          const dayOfWeek = recordDate.getDay();
+
+          if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+            const checkIn = new Date(record.checkInTime);
+            const checkOut = new Date(record.checkOutTime);
+
+            const workStart = new Date(checkIn);
+            workStart.setHours(9, 0, 0, 0);
+            const workEnd = new Date(checkOut);
+            workEnd.setHours(17, 0, 0, 0);
+
+            const effectiveCheckIn = checkIn > workStart ? checkIn : workStart;
+            const effectiveCheckOut = checkOut < workEnd ? checkOut : workEnd;
+
+            if (effectiveCheckOut > effectiveCheckIn) {
+              const hours = (effectiveCheckOut.getTime() - effectiveCheckIn.getTime()) / (1000 * 60 * 60);
+              return total + hours;
+            }
+          }
+        }
+        return total;
+      }, 0);
+
+      // Calculate attendance rate
+      let expectedWorkDays = 0;
+      const currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getDay();
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          expectedWorkDays++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      let attendanceScore = 0;
+      let maxScore = expectedWorkDays * 100;
+
+      userAttendance.forEach(record => {
+        const recordDate = new Date(record.date);
+        const dayOfWeek = recordDate.getDay();
+
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          if (record.status === 'on_time') {
+            attendanceScore += 100;
+          } else if (record.status === 'late') {
+            attendanceScore += 85;
+          } else if (record.status === 'very_late') {
+            attendanceScore += 70;
+          } else if (record.status === 'excused') {
+            attendanceScore += 90;
+          }
+        }
+      });
+
+      const attendanceRate = maxScore > 0 ? Math.round((attendanceScore / maxScore) * 100) : 100;
+
+      return {
+        staffId: user.staffId,
+        staffName: user.name,
+        department: user.department,
+        tasksApproved,
+        tasksTotal,
+        hoursWorked: Math.round(hoursWorked * 10) / 10,
+        attendanceRate: Math.min(attendanceRate, 100),
+      };
+    });
+
+    // Calculate aggregated metrics
+    const totalStaff = staffMetrics.length;
+    const avgTasksApproved = totalStaff > 0 
+      ? Math.round(staffMetrics.reduce((sum, s) => sum + s.tasksApproved, 0) / totalStaff * 10) / 10
+      : 0;
+    const avgTasksTotal = totalStaff > 0 
+      ? Math.round(staffMetrics.reduce((sum, s) => sum + s.tasksTotal, 0) / totalStaff * 10) / 10
+      : 0;
+    const avgHoursWorked = totalStaff > 0 
+      ? Math.round(staffMetrics.reduce((sum, s) => sum + s.hoursWorked, 0) / totalStaff * 10) / 10
+      : 0;
+    const avgAttendanceRate = totalStaff > 0 
+      ? Math.round(staffMetrics.reduce((sum, s) => sum + s.attendanceRate, 0) / totalStaff)
+      : 0;
+    const totalHoursWorked = Math.round(staffMetrics.reduce((sum, s) => sum + s.hoursWorked, 0) * 10) / 10;
+
+    const aggregatedMetrics: AggregatedMetrics = {
+      totalStaff,
+      avgTasksApproved,
+      avgTasksTotal,
+      avgHoursWorked,
+      avgAttendanceRate,
+      totalHoursWorked,
+      staffMetrics,
+    };
+
+    return { data: aggregatedMetrics, error: null };
+  });
+}
+
+/**
+ * Get metrics for a specific staff member
+ */
+export async function getIndividualStaffMetrics(
+  staffId: string,
+  period: 'day' | 'week' | 'month',
+  date?: Date
+): Promise<ServiceResult<StaffMetrics>> {
+  return handleDatabaseOperation(async () => {
+    const result = await getStaffMetrics(period, date);
+    
+    if (!result.success) {
+      return { data: null, error: result.error };
+    }
+
+    const staffMetric = result.data.staffMetrics.find(s => s.staffId === staffId);
+    
+    if (!staffMetric) {
+      return { 
+        data: null, 
+        error: { message: 'Staff member not found', code: 'NOT_FOUND' } 
+      };
+    }
+
+    return { data: staffMetric, error: null };
   });
 }

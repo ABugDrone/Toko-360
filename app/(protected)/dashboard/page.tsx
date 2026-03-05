@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Fetch data from Supabase
+    // Fetch data from Supabase with non-blocking pattern
     const fetchDashboardData = async () => {
       if (!user) return;
       
@@ -31,8 +31,12 @@ export default function DashboardPage() {
       setError(null);
       
       try {
-        // Fetch attendance records for the user
-        const attendanceResult = await getAttendanceRecords(user.staffId);
+        // Fetch both in parallel to reduce wait time
+        const [attendanceResult, reportsResult] = await Promise.all([
+          getAttendanceRecords(user.staffId),
+          getReports(user.staffId)
+        ]);
+        
         if (attendanceResult.success) {
           setAttendanceRecords(attendanceResult.data);
         } else {
@@ -41,8 +45,6 @@ export default function DashboardPage() {
           setError(dbError);
         }
         
-        // Fetch reports for the user
-        const reportsResult = await getReports(user.staffId);
         if (reportsResult.success) {
           setReports(reportsResult.data);
         } else {
@@ -59,45 +61,121 @@ export default function DashboardPage() {
       }
     };
     
-    fetchDashboardData();
+    // Non-blocking fetch with slight delay
+    const timeoutId = setTimeout(() => {
+      fetchDashboardData();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [user]);
 
   // Calculate metrics from fetched data
   const calculateMetrics = () => {
-    // Calculate hours worked this week
     const now = new Date();
+    
+    // ============================================================================
+    // TASKS METRIC - Weekly reset (Monday to Sunday)
+    // ============================================================================
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); // Monday
     startOfWeek.setHours(0, 0, 0, 0);
     
-    const thisWeekRecords = attendanceRecords.filter(record => {
-      const recordDate = new Date(record.date);
-      return recordDate >= startOfWeek;
+    const thisWeekReports = reports.filter(report => {
+      const reportDate = new Date(report.createdAt);
+      return reportDate >= startOfWeek;
     });
     
-    const hoursWorked = thisWeekRecords.reduce((total, record) => {
+    const totalTasks = thisWeekReports.length;
+    const approvedTasks = thisWeekReports.filter(r => r.approvalStatus === 'approved').length;
+    const tasksDisplay = `${approvedTasks}/${totalTasks}`;
+    
+    // ============================================================================
+    // HOURS WORKED - Monthly sum of 9am-5pm work hours (Mon-Fri + Sat bonuses)
+    // ============================================================================
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const thisMonthRecords = attendanceRecords.filter(record => {
+      const recordDate = new Date(record.date);
+      return recordDate >= startOfMonth;
+    });
+    
+    const hoursWorked = thisMonthRecords.reduce((total, record) => {
       if (record.checkInTime && record.checkOutTime) {
-        const checkIn = new Date(record.checkInTime);
-        const checkOut = new Date(record.checkOutTime);
-        const hours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
-        return total + hours;
+        const recordDate = new Date(record.date);
+        const dayOfWeek = recordDate.getDay();
+        
+        // Only count Mon-Fri (1-5) and Saturday (6) if present
+        if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+          const checkIn = new Date(record.checkInTime);
+          const checkOut = new Date(record.checkOutTime);
+          
+          // Cap check-in at 9am and check-out at 5pm for calculation
+          const workStart = new Date(checkIn);
+          workStart.setHours(9, 0, 0, 0);
+          const workEnd = new Date(checkOut);
+          workEnd.setHours(17, 0, 0, 0);
+          
+          const effectiveCheckIn = checkIn > workStart ? checkIn : workStart;
+          const effectiveCheckOut = checkOut < workEnd ? checkOut : workEnd;
+          
+          if (effectiveCheckOut > effectiveCheckIn) {
+            const hours = (effectiveCheckOut.getTime() - effectiveCheckIn.getTime()) / (1000 * 60 * 60);
+            return total + hours;
+          }
+        }
       }
       return total;
     }, 0);
     
-    // Calculate attendance rate
-    const totalDays = attendanceRecords.length;
-    const presentDays = attendanceRecords.filter(r => r.status === 'on_time' || r.status === 'late').length;
-    const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+    // ============================================================================
+    // ATTENDANCE RATE - Dynamic based on check-in times and missed days
+    // ============================================================================
+    // Get all weekdays (Mon-Fri) from start of month to today
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
     
-    // Count pending tasks (draft reports)
-    const pendingTasks = reports.filter(r => r.status === 'draft').length;
+    let expectedWorkDays = 0;
+    const currentDate = new Date(startOfMonth);
+    
+    while (currentDate <= today) {
+      const dayOfWeek = currentDate.getDay();
+      // Count Mon-Fri (1-5)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        expectedWorkDays++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Calculate attendance score
+    let attendanceScore = 0;
+    let maxScore = expectedWorkDays * 100; // Each day worth 100 points
+    
+    thisMonthRecords.forEach(record => {
+      const recordDate = new Date(record.date);
+      const dayOfWeek = recordDate.getDay();
+      
+      // Only count Mon-Fri for attendance calculation
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        if (record.status === 'on_time') {
+          attendanceScore += 100; // Full points
+        } else if (record.status === 'late') {
+          attendanceScore += 85; // 85% for late
+        } else if (record.status === 'very_late') {
+          attendanceScore += 70; // 70% for very late
+        } else if (record.status === 'excused') {
+          attendanceScore += 90; // 90% for excused absence
+        }
+        // absent = 0 points
+      }
+    });
+    
+    const attendanceRate = maxScore > 0 ? Math.round((attendanceScore / maxScore) * 100) : 100;
     
     return {
-      pendingTasks,
+      tasksDisplay,
       hoursWorked: hoursWorked.toFixed(1),
-      attendanceRate,
-      rewardPoints: 4250 // This would come from user data in a real implementation
+      attendanceRate: Math.min(attendanceRate, 100), // Cap at 100%
     };
   };
   
@@ -144,14 +222,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Quick Metrics */}
-              <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <MetricCard
-                  label="PENDING TASKS"
-                  value={metrics.pendingTasks.toString()}
+                  label="TASKS (THIS WEEK)"
+                  value={metrics.tasksDisplay}
                   color="pink"
                 />
                 <MetricCard
-                  label="HOURS WORKED"
+                  label="HOURS (THIS MONTH)"
                   value={metrics.hoursWorked}
                   color="cyan"
                 />
@@ -159,11 +237,6 @@ export default function DashboardPage() {
                   label="ATTENDANCE"
                   value={`${metrics.attendanceRate}%`}
                   color="green"
-                />
-                <MetricCard
-                  label="REWARD PTS"
-                  value={metrics.rewardPoints.toLocaleString()}
-                  color="purple"
                 />
               </div>
             </div>

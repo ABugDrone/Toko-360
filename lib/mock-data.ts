@@ -100,7 +100,6 @@ export const mockDashboardMetrics: DashboardMetrics = {
 };
 
 export const mockSystemConfig: SystemConfig = {
-  lateArrivalThreshold: 15,
   attendanceMethod: 'in_app',
   darkModeForced: true,
   systemNotificationsEnabled: true,

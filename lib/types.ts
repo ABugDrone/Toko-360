@@ -1,7 +1,7 @@
 // User and Auth Types
 export type UserRole = 'admin' | 'staff' | 'instructor' | 'department_head' | 'senior_instructor';
 export type Department = 'IT' | 'Marketing' | 'Communications' | 'Student Support' | 'Business Intelligence' | 'Finance' | 'Logistics & Procurement' | 'Internship & SIWES';
-export type AttendanceStatus = 'on_time' | 'late' | 'absent' | 'excused';
+export type AttendanceStatus = 'on_time' | 'late' | 'very_late' | 'absent' | 'excused';
 export type ReportStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'ongoing';
 export type MessageType = 'text' | 'file';
 
@@ -36,6 +36,7 @@ export interface AttendanceRecord {
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
   approvedAt?: string;
+  feedback?: string; // Feedback for rejection (max 100 words)
 }
 
 // Reports
@@ -139,7 +140,6 @@ export interface DashboardMetrics {
 
 // Admin System Config
 export interface SystemConfig {
-  lateArrivalThreshold: number; // minutes
   attendanceMethod: 'in_app';
   darkModeForced: boolean;
   systemNotificationsEnabled: boolean;

@@ -39,6 +39,7 @@ export function Sidebar() {
             subItems: [
               { label: 'Staff Dashboard', href: '/dashboard' },
               { label: 'Admin Dashboard', href: '/admin/dashboard' },
+              { label: 'Analytics', href: '/admin/analytics' },
             ],
           },
         ]
