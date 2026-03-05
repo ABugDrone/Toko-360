@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { mapDatabaseError } from '@/lib/error-handler';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,24 +16,51 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [staySignedIn, setStaySignedIn] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    
+    // Validate inputs
+    if (!staffId.trim() || !password.trim()) {
+      setError('Please enter both Staff ID and Password');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      await login(staffId, password);
-      // Add small delay to allow React state to propagate before navigation
-      // This prevents race condition with protected route guard
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const result = await login(staffId, password);
+      
+      if (!result) {
+        setError('Invalid credentials. Please check your Staff ID and Password.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Show success message
+      setSuccess('Login successful! Redirecting to dashboard...');
+      
+      // Add small delay to show success message before navigation
+      await new Promise(resolve => setTimeout(resolve, 800));
       router.push('/dashboard');
     } catch (err: any) {
-      const dbError = mapDatabaseError(err);
-      setError(dbError.message);
-    } finally {
+      console.error('Login error:', err);
+      
+      // Handle different error types
+      if (err.message?.includes('Invalid login credentials')) {
+        setError('Invalid Staff ID or Password. Please try again.');
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        const dbError = mapDatabaseError(err);
+        setError(dbError.message || 'Login failed. Please try again.');
+      }
+      
       setIsLoading(false);
     }
   };
@@ -170,6 +198,13 @@ export default function LoginPage() {
             {error && (
               <div className="p-3 border rounded-lg text-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
                 {error}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="p-3 border rounded-lg text-sm" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.3)', color: '#22c55e' }}>
+                {success}
               </div>
             )}
 

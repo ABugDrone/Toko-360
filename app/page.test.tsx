@@ -84,8 +84,16 @@ describe('LoginPage - Bug Condition Exploration', () => {
    * authentication succeeds, but navigation does NOT occur.
    */
   it('Property 1: UI navigates to dashboard after successful login', async () => {
-    // Setup: Mock successful authentication
-    mockLogin.mockResolvedValue(undefined);
+    // Setup: Mock successful authentication - return a user object
+    const mockUser = {
+      id: '1',
+      staffId: 'TA-2024-001',
+      name: 'Test User',
+      email: 'test@toko.edu',
+      department: 'IT' as const,
+      role: 'staff' as const,
+    };
+    mockLogin.mockResolvedValue(mockUser);
 
     // Render the login page
     render(<LoginPage />);

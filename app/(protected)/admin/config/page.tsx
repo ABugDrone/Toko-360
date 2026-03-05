@@ -127,38 +127,32 @@ export default function AdminConfigPage() {
 
   const handleUpdateUser = async () => {
     if (!editingUserId || !userFormData.staffId || !userFormData.name || !userFormData.email) {
-      showErrorToast({ message: 'Please fill in all required fields', retryable: false });
+      showErrorToast({ message: 'Please fill in all required fields', code: 'VALIDATION_ERROR', details: null });
       return;
     }
 
     setIsSubmitting(true);
     
-    // Optimistic UI update - close form immediately
-    const editingUserIdCopy = editingUserId;
-    const userFormDataCopy = { ...userFormData };
-    resetUserForm();
-    
     try {
-      await updateUser(editingUserIdCopy, {
-        name: userFormDataCopy.name,
-        email: userFormDataCopy.email,
-        department: userFormDataCopy.department as Department,
-        role: userFormDataCopy.role,
+      await updateUser(editingUserId, {
+        name: userFormData.name,
+        email: userFormData.email,
+        department: userFormData.department as Department,
+        role: userFormData.role,
       });
+      
       showSuccessToast('User updated successfully');
       
-      // Reload users in background
-      getAllUsers().then(updatedUsers => {
-        setUsers(updatedUsers);
-      });
+      // Reload users
+      const updatedUsers = await getAllUsers();
+      setUsers(updatedUsers);
+      
+      // Close form after successful update
+      resetUserForm();
     } catch (error: any) {
       const dbError = mapDatabaseError(error);
       showErrorToast(dbError, {
         onRetry: () => handleUpdateUser(),
-      });
-      // Reload users on error
-      getAllUsers().then(updatedUsers => {
-        setUsers(updatedUsers);
       });
     } finally {
       setIsSubmitting(false);
@@ -343,9 +337,15 @@ export default function AdminConfigPage() {
                     value={userFormData.staffId}
                     onChange={(e) => setUserFormData({ ...userFormData, staffId: e.target.value })}
                     placeholder="e.g., AR001"
-                    className="transition-colors duration-300"
+                    disabled={!!editingUserId}
+                    className="transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   />
+                  {editingUserId && (
+                    <p className="text-xs mt-1 transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.6 }}>
+                      Staff ID cannot be changed
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -354,7 +354,8 @@ export default function AdminConfigPage() {
                     value={userFormData.name}
                     onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })}
                     placeholder="e.g., Alex Rivera"
-                    className="transition-colors duration-300"
+                    disabled={isSubmitting}
+                    className="transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   />
                 </div>
@@ -366,7 +367,8 @@ export default function AdminConfigPage() {
                     value={userFormData.email}
                     onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
                     placeholder="e.g., a.rivera@toko.edu"
-                    className="transition-colors duration-300"
+                    disabled={isSubmitting}
+                    className="transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   />
                 </div>
@@ -376,7 +378,8 @@ export default function AdminConfigPage() {
                   <select
                     value={userFormData.department}
                     onChange={(e) => setUserFormData({ ...userFormData, department: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border transition-colors duration-300"
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 rounded-lg border transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   >
                     {departments.length === 0 ? (
@@ -401,7 +404,8 @@ export default function AdminConfigPage() {
                   <select
                     value={userFormData.role}
                     onChange={(e) => setUserFormData({ ...userFormData, role: e.target.value as UserRole })}
-                    className="w-full px-3 py-2 rounded-lg border transition-colors duration-300"
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 rounded-lg border transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   >
                     <option value="staff">Staff</option>
