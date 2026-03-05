@@ -90,52 +90,44 @@ export default function EventsPage() {
     
     setIsSubmitting(true);
     
-    // Optimistic UI update - close form immediately
-    const formDataCopy = { ...formData };
-    setShowForm(false);
-    setFormData({
-      title: '',
-      description: '',
-      eventDate: '',
-      eventTime: '',
-      location: '',
-      category: 'other',
-      color: 'bg-blue-600',
-      targetDepartments: null,
-    });
-    
     try {
       if (editingId) {
         // Update event
         await updateEvent(editingId, {
-          ...formDataCopy,
+          ...formData,
           updatedAt: Date.now(),
         });
         showSuccessToast('Event updated successfully');
       } else {
         // Create event
         await addEvent({
-          ...formDataCopy,
+          ...formData,
           createdBy: user.staffId,
         });
         showSuccessToast('Event created successfully');
       }
       
-      // Reload events in background
+      // Close form and reset after successful save
+      setShowForm(false);
+      setFormData({
+        title: '',
+        description: '',
+        eventDate: '',
+        eventTime: '',
+        location: '',
+        category: 'other',
+        color: 'bg-blue-600',
+        targetDepartments: null,
+      });
+      
+      // Reload events
       if (user?.department) {
-        getEventsByDepartment(user.department).then(updatedEvents => {
-          setEvents(updatedEvents);
-        });
+        const updatedEvents = await getEventsByDepartment(user.department);
+        setEvents(updatedEvents);
       }
     } catch (error: any) {
       const dbError = mapDatabaseError(error);
       showErrorToast(dbError);
-      // Reload events on error to ensure consistency
-      if (user?.department) {
-        getEventsByDepartment(user.department).then(updatedEvents => {
-          setEvents(updatedEvents);
-        });
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -144,18 +136,22 @@ export default function EventsPage() {
   const handleDelete = async (eventId: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
     
-    // Optimistic UI update - remove event immediately
-    const previousEvents = [...events];
-    setEvents(events.filter(e => e.id !== eventId));
+    setIsSubmitting(true);
     
     try {
       await deleteEvent(eventId);
       showSuccessToast('Event deleted successfully');
+      
+      // Reload events after successful delete
+      if (user?.department) {
+        const updatedEvents = await getEventsByDepartment(user.department);
+        setEvents(updatedEvents);
+      }
     } catch (error: any) {
-      // Revert on error
-      setEvents(previousEvents);
       const dbError = mapDatabaseError(error);
       showErrorToast(dbError);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

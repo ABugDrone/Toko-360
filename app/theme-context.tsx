@@ -15,25 +15,54 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
   const [mounted, setMounted] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Initialize theme from localStorage
+  // Get user ID from auth session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const session = localStorage.getItem('toko_auth_session');
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          setUserId(parsed.user?.id || null);
+        } catch {
+          setUserId(null);
+        }
+      }
+    }
+  }, []);
+
+  // Initialize theme from localStorage (user-specific)
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('toko_theme_config');
+    if (typeof window !== 'undefined' && userId) {
+      const savedTheme = localStorage.getItem(`toko_theme_config_${userId}`);
       if (savedTheme) {
         try {
           setTheme(JSON.parse(savedTheme));
         } catch {
           setTheme(defaultTheme);
         }
+      } else {
+        // Check for old global theme and migrate it
+        const oldTheme = localStorage.getItem('toko_theme_config');
+        if (oldTheme) {
+          try {
+            const parsed = JSON.parse(oldTheme);
+            setTheme(parsed);
+            // Save to user-specific key
+            localStorage.setItem(`toko_theme_config_${userId}`, oldTheme);
+          } catch {
+            setTheme(defaultTheme);
+          }
+        }
       }
     }
-  }, []);
+  }, [userId]);
 
   // Apply theme to document
   useEffect(() => {
-    if (mounted && typeof window !== 'undefined') {
+    if (mounted && typeof window !== 'undefined' && userId) {
       const root = document.documentElement;
       
       // Remove all theme classes
@@ -65,10 +94,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.style.setProperty('--theme-border', colors.border);
       root.style.setProperty('--theme-accent', accent);
       
-      // Save to localStorage
-      localStorage.setItem('toko_theme_config', JSON.stringify(theme));
+      // Save to user-specific localStorage
+      localStorage.setItem(`toko_theme_config_${userId}`, JSON.stringify(theme));
     }
-  }, [theme, mounted]);
+  }, [theme, mounted, userId]);
 
   const updateTheme = (updates: Partial<ThemeConfig>) => {
     setTheme(prev => ({ ...prev, ...updates }));
