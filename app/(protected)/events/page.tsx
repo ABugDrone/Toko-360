@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TopNav } from '@/components/top-nav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { Calendar, Clock, MapPin, Plus, Edit, Trash2, X, Save, Loader2, Users } 
 import type { Event, DepartmentRecord } from '@/lib/types';
 import { mapDatabaseError } from '@/lib/error-handler';
 import { showErrorToast, showSuccessToast } from '@/lib/error-toast';
+import { useRealtimeEvents } from '@/hooks/use-realtime-events';
+import { ConnectionStatus } from '@/components/ui/connection-status';
 
 export default function EventsPage() {
   const { user } = useAuth();
@@ -31,6 +33,37 @@ export default function EventsPage() {
   });
 
   const isBusinessIntelligence = user?.department === 'Business Intelligence';
+
+  // Handle real-time event updates
+  const handleEventCreated = useCallback((newEvent: Event) => {
+    setEvents(prev => {
+      // Check if event already exists to avoid duplicates
+      if (prev.some(e => e.id === newEvent.id)) {
+        return prev;
+      }
+      return [...prev, newEvent].sort((a, b) => 
+        new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+      );
+    });
+  }, []);
+
+  const handleEventUpdated = useCallback((updatedEvent: Event) => {
+    setEvents(prev => 
+      prev.map(e => e.id === updatedEvent.id ? updatedEvent : e)
+    );
+  }, []);
+
+  const handleEventDeleted = useCallback((eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+  }, []);
+
+  // Set up real-time subscription
+  const connectionStatus = useRealtimeEvents({
+    department: user?.department,
+    onEventCreated: handleEventCreated,
+    onEventUpdated: handleEventUpdated,
+    onEventDeleted: handleEventDeleted,
+  });
 
   // Load events and departments on mount
   useEffect(() => {
@@ -230,9 +263,22 @@ export default function EventsPage() {
             <h2 className="text-3xl font-bold transition-colors duration-300" style={{ color: 'var(--theme-text)' }}>
               Upcoming Events
             </h2>
-            <p className="transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.7 }}>
-              Stay updated with important dates and announcements
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.7 }}>
+                Stay updated with important dates and announcements
+              </p>
+              {/* Connection Status Indicator */}
+              <ConnectionStatus
+                status={
+                  connectionStatus.isConnected
+                    ? 'online'
+                    : connectionStatus.isReconnecting
+                    ? 'reconnecting'
+                    : 'offline'
+                }
+                showLabel={false}
+              />
+            </div>
           </div>
           {isBusinessIntelligence && !showForm && (
             <Button
