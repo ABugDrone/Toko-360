@@ -56,7 +56,9 @@ export function useRealtimeEvents({
     if (!department) return;
     
     const targetDepts = newEvent.target_departments;
-    const isForDepartment = targetDepts === null || targetDepts.includes(department);
+    // Business Intelligence (admin) sees ALL events regardless of targeting
+    const isBusinessIntelligence = department === 'Business Intelligence';
+    const isForDepartment = isBusinessIntelligence || targetDepts === null || targetDepts.includes(department);
     
     if (isForDepartment) {
       // Transform database format to app format
@@ -84,7 +86,9 @@ export function useRealtimeEvents({
     if (!department) return;
     
     const targetDepts = updatedEvent.target_departments;
-    const isForDepartment = targetDepts === null || targetDepts.includes(department);
+    // Business Intelligence (admin) sees ALL events regardless of targeting
+    const isBusinessIntelligence = department === 'Business Intelligence';
+    const isForDepartment = isBusinessIntelligence || targetDepts === null || targetDepts.includes(department);
     
     if (isForDepartment) {
       // Transform database format to app format
@@ -108,6 +112,8 @@ export function useRealtimeEvents({
 
   const handleDelete = useCallback((payload: any) => {
     const deletedEvent = payload.old;
+    // Always remove deleted events regardless of department
+    // The database has already confirmed the deletion
     onEventDeletedRef.current?.(deletedEvent.id);
   }, []);
 

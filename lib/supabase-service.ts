@@ -1157,18 +1157,33 @@ export async function getEvents(): Promise<ServiceResult<import('./types').Event
  */
 export async function getEventsByDepartment(department: string): Promise<ServiceResult<import('./types').Event[]>> {
   return handleDatabaseOperation(async () => {
+    // Business Intelligence (admin) should see ALL events regardless of targeting
+    if (department === 'Business Intelligence') {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true });
+
+      return {
+        data: data ? data.map((event: any) => dbEventToEvent(event as DbEvent)) : [],
+        error
+      };
+    }
+
+    // Other departments only see events targeted to them or broadcast to all
     const { data, error } = await supabase
       .from('events')
       .select('*')
       .or(`target_departments.is.null,target_departments.cs.{${department}}`)
       .order('event_date', { ascending: true });
 
-    return { 
-      data: data ? data.map((event: any) => dbEventToEvent(event as DbEvent)) : [], 
-      error 
+    return {
+      data: data ? data.map((event: any) => dbEventToEvent(event as DbEvent)) : [],
+      error
     };
   });
 }
+
 
 /**
  * Add new event
@@ -1234,14 +1249,16 @@ export async function updateEvent(
 /**
  * Delete event
  */
-export async function deleteEvent(eventId: string): Promise<ServiceResult<null>> {
+export async function deleteEvent(eventId: string): Promise<ServiceResult<{ id: string }>> {
   return handleDatabaseOperation(async () => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('events')
       .delete()
-      .eq('id', eventId);
+      .eq('id', eventId)
+      .select()
+      .single();
 
-    return { data: null, error };
+    return { data, error };
   });
 }
 

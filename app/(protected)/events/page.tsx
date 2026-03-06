@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/app/auth-context';
 import { getEventsByDepartment, addEvent, updateEvent, deleteEvent, getDepartments } from '@/lib/storage';
-import { Calendar, Clock, MapPin, Plus, Edit, Trash2, X, Save, Loader2, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Plus, Edit, Trash2, X, Save, Loader2, Users, RefreshCw } from 'lucide-react';
 import type { Event, DepartmentRecord } from '@/lib/types';
 import { mapDatabaseError } from '@/lib/error-handler';
 import { showErrorToast, showSuccessToast } from '@/lib/error-toast';
@@ -85,7 +85,20 @@ export default function EventsPage() {
     };
 
     loadData();
-  }, [user?.department]);
+
+    // Set up periodic refresh every 30 seconds to catch any missed real-time updates
+    const refreshInterval = setInterval(() => {
+      if (user?.department && !showForm) {
+        getEventsByDepartment(user.department).then(updatedEvents => {
+          setEvents(updatedEvents);
+        }).catch(error => {
+          console.error('Failed to refresh events:', error);
+        });
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.department, showForm]);
 
   const handleNewEvent = () => {
     setEditingId(null);
@@ -203,6 +216,21 @@ export default function EventsPage() {
     });
   };
 
+  const handleRefresh = async () => {
+    if (!user?.department) return;
+    setLoading(true);
+    try {
+      const updatedEvents = await getEventsByDepartment(user.department);
+      setEvents(updatedEvents);
+      showSuccessToast('Events refreshed');
+    } catch (error: any) {
+      const dbError = mapDatabaseError(error);
+      showErrorToast(dbError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDepartmentToggle = (deptName: string) => {
     setFormData(prev => {
       // If targetDepartments is null, initialize with all departments except the one being toggled
@@ -280,16 +308,28 @@ export default function EventsPage() {
               />
             </div>
           </div>
-          {isBusinessIntelligence && !showForm && (
+          <div className="flex items-center gap-2">
+            {/* Refresh Button */}
             <Button
-              onClick={handleNewEvent}
-              className="font-bold px-6 rounded-lg transition-colors"
-              style={{ backgroundColor: 'var(--theme-accent)', color: '#ffffff' }}
+              onClick={handleRefresh}
+              disabled={loading}
+              className="font-bold px-4 rounded-lg transition-colors"
+              style={{ backgroundColor: 'var(--theme-surface)', borderWidth: '1px', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+              title="Refresh events"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              New Event
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
+            {isBusinessIntelligence && !showForm && (
+              <Button
+                onClick={handleNewEvent}
+                className="font-bold px-6 rounded-lg transition-colors"
+                style={{ backgroundColor: 'var(--theme-accent)', color: '#ffffff' }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Event
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Event Form */}
