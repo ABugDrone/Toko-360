@@ -1,0 +1,303 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
+
+/* Theme CSS Variables - Will be set dynamically by theme context */
+:root {
+  --theme-primary: #3b82f6;
+  --theme-secondary: #94a3b8;
+  --theme-background: #ffffff;
+  --theme-surface: #f8fafc;
+  --theme-text: #0f172a;
+  --theme-border: #e2e8f0;
+  --theme-accent: #3b82f6;
+}
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+  
+  body {
+    background-color: var(--theme-background);
+    color: var(--theme-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  }
+  
+  /* Corporate theme - clean and simple */
+  .theme-corporate * {
+    transition: all 0.2s ease;
+  }
+  
+  .theme-corporate button:hover {
+    transform: none;
+    opacity: 0.9;
+  }
+  
+  .theme-corporate .card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Animated theme - smooth transitions and effects */
+  .animated * {
+    @apply transition-all duration-300;
+  }
+  
+  .animated button:hover {
+    @apply transform scale-105;
+  }
+  
+  /* Simple theme - minimal animations */
+  .simple * {
+    @apply transition-colors duration-200;
+  }
+}
+
+/* Windows 95 Theme Specific Styles */
+.theme-windows-95 button,
+.theme-windows-95 .card {
+  border-width: 2px;
+  border-style: outset;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: none;
+}
+
+.theme-windows-95 button:active {
+  border-style: inset;
+  border-color: #000000 #ffffff #ffffff #000000;
+}
+
+/* Windows XP Theme Specific Styles */
+.theme-windows-xp button {
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.theme-windows-xp .card {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Windows 11 Theme Specific Styles */
+.theme-windows-11 * {
+  border-radius: 8px;
+}
+
+.theme-windows-11 .card {
+  backdrop-filter: blur(40px);
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.dark.theme-windows-11 .card {
+  background-color: rgba(44, 44, 44, 0.7);
+}
+
+/* Apple OS Theme Specific Styles */
+.theme-apple-os * {
+  border-radius: 12px;
+}
+
+.theme-apple-os .card {
+  backdrop-filter: blur(20px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark.theme-apple-os .card {
+  background-color: rgba(44, 44, 46, 0.8);
+}
+
+/* Google Workspace Theme Specific Styles */
+.theme-google-workspace {
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+}
+
+.theme-google-workspace .card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}
+
+/* Neon Theme Specific Styles - BRIGHT EFFECTS */
+.theme-neon button,
+.theme-neon .card {
+  box-shadow: 0 0 20px var(--theme-accent), 0 0 40px rgba(0, 217, 255, 0.3);
+  border: 1px solid var(--theme-accent);
+}
+
+.theme-neon button:hover,
+.theme-neon .card:hover {
+  box-shadow: 0 0 30px var(--theme-accent), 0 0 60px rgba(0, 217, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.theme-neon .text-glow {
+  text-shadow: 0 0 10px var(--theme-accent), 0 0 20px var(--theme-accent), 0 0 30px var(--theme-accent);
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+.theme-neon h1, .theme-neon h2, .theme-neon h3 {
+  text-shadow: 0 0 10px var(--theme-accent), 0 0 20px var(--theme-accent);
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    text-shadow: 0 0 10px var(--theme-accent), 0 0 20px var(--theme-accent), 0 0 30px var(--theme-accent);
+  }
+  50% {
+    text-shadow: 0 0 20px var(--theme-accent), 0 0 40px var(--theme-accent), 0 0 60px var(--theme-accent);
+  }
+}
+
+/* Cyberpunk Theme Specific Styles - BRIGHT EFFECTS */
+.theme-cyberpunk {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+}
+
+.theme-cyberpunk button,
+.theme-cyberpunk .card {
+  border: 2px solid var(--theme-accent);
+  box-shadow: 0 0 20px var(--theme-accent), 
+              0 0 40px var(--theme-primary), 
+              inset 0 0 20px rgba(255, 0, 128, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-cyberpunk button::before,
+.theme-cyberpunk .card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 0, 128, 0.1),
+    transparent
+  );
+  animation: cyberpunk-scan 3s linear infinite;
+}
+
+@keyframes cyberpunk-scan {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.theme-cyberpunk button:hover,
+.theme-cyberpunk .card:hover {
+  box-shadow: 0 0 30px var(--theme-accent), 
+              0 0 60px var(--theme-primary),
+              0 0 80px var(--theme-secondary),
+              inset 0 0 30px rgba(255, 0, 128, 0.3);
+  transform: translateY(-2px);
+}
+
+.theme-cyberpunk .text-glow {
+  text-shadow: 0 0 10px var(--theme-primary), 
+               0 0 20px var(--theme-secondary),
+               0 0 30px var(--theme-accent);
+  animation: cyberpunk-glow 1.5s ease-in-out infinite alternate;
+}
+
+.theme-cyberpunk h1, .theme-cyberpunk h2, .theme-cyberpunk h3 {
+  text-shadow: 0 0 10px var(--theme-primary), 0 0 20px var(--theme-secondary);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+@keyframes cyberpunk-glow {
+  0% {
+    text-shadow: 0 0 10px var(--theme-primary), 
+                 0 0 20px var(--theme-secondary),
+                 0 0 30px var(--theme-accent);
+  }
+  100% {
+    text-shadow: 0 0 20px var(--theme-primary), 
+                 0 0 40px var(--theme-secondary),
+                 0 0 60px var(--theme-accent);
+  }
+}
+
+/* Retro Theme Specific Styles */
+.theme-retro {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+.theme-retro button,
+.theme-retro .card {
+  border: 3px solid var(--theme-text);
+  box-shadow: 5px 5px 0 var(--theme-accent);
+}
+
+.theme-retro button:hover,
+.theme-retro .card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--theme-accent);
+}
+
+/* Utility Classes */
+.card {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+}
+
+.btn-primary {
+  background-color: var(--theme-accent);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.text-primary {
+  color: var(--theme-primary);
+}
+
+.text-accent {
+  color: var(--theme-accent);
+}
+
+.bg-surface {
+  background-color: var(--theme-surface);
+}
+
+.border-theme {
+  border-color: var(--theme-border);
+}
+
+/* Corporate theme - remove all glow effects */
+.theme-corporate button,
+.theme-corporate .card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--theme-border);
+}
+
+.theme-corporate button:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.theme-corporate h1, 
+.theme-corporate h2, 
+.theme-corporate h3 {
+  text-shadow: none;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+

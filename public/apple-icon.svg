@@ -1,0 +1,26 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient border -->
+  <defs>
+    <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#22d3ee;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4ade80;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="url(#bgGradient)"/>
+  
+  <!-- Border circle -->
+  <circle cx="90" cy="90" r="70" fill="none" stroke="url(#borderGradient)" stroke-width="3" opacity="0.8"/>
+  
+  <!-- Colorful dots (Toko logo inspired) -->
+  <circle cx="98" cy="65" r="12" fill="#FF6B6B"/>
+  <circle cx="115" cy="82" r="12" fill="#4ECDC4"/>
+  <circle cx="102" cy="102" r="12" fill="#95E1D3"/>
+  <circle cx="78" cy="106" r="12" fill="#FFE66D"/>
+</svg>
