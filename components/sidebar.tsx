@@ -33,14 +33,6 @@ export function Sidebar() {
 
   const closeMobile = () => setMobileOpen(false);
 
-  const toggleDropdown = (label: string) => {
-    setOpenDropdowns(prev => 
-      prev.includes(label) 
-        ? prev.filter(item => item !== label)
-        : [...prev, label]
-    );
-  };
-
   const sidebarItems: SidebarItem[] = [
     ...(user?.role === 'admin'
       ? [
@@ -146,7 +138,8 @@ export function Sidebar() {
     <>
       {/* Mobile hamburger button */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-border shadow-lg"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg border shadow-lg"
+        style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
       >
@@ -163,31 +156,36 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside className={cn(
-        'w-64 border-r flex flex-col h-screen bg-card border-border transition-transform duration-300 z-50',
-        // Desktop: always visible
+        'w-64 border-r flex flex-col h-screen transition-transform duration-300 z-50',
         'md:relative md:translate-x-0',
-        // Mobile: fixed, slide in/out
         'fixed',
         mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      )}>
+      )}
+        style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}
+      >
         {/* Logo */}
-        <div className="p-4 border-b rounded-b-lg mx-4 mt-4 mb-2 border-border flex items-center justify-between">
+        <div className="p-4 border-b rounded-b-lg mx-4 mt-4 mb-2 flex items-center justify-between"
+          style={{ borderColor: 'var(--theme-border)' }}
+        >
           <Link href="/dashboard" className="flex items-center gap-3 group" onClick={closeMobile}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--theme-accent)' }}
+            >
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
               </svg>
             </div>
             <div>
-              <div className="font-bold text-sm text-foreground">Toko 360</div>
-              <div className="text-xs text-primary">STAFF PORTAL</div>
+              <div className="font-bold text-sm" style={{ color: 'var(--theme-text)' }}>Toko 360</div>
+              <div className="text-xs" style={{ color: 'var(--theme-accent)' }}>STAFF PORTAL</div>
             </div>
           </Link>
           {/* Close button on mobile */}
           <button
-            className="md:hidden p-1 rounded text-muted-foreground hover:text-foreground"
+            className="md:hidden p-1 rounded"
             onClick={closeMobile}
             aria-label="Close menu"
+            style={{ color: 'var(--theme-text)' }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -207,11 +205,16 @@ export function Sidebar() {
                 <button
                   onClick={() => toggleDropdown(item.label)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                    hasActiveSubItem
-                      ? 'font-semibold border bg-primary text-white border-primary'
-                      : 'hover:bg-muted text-foreground border border-transparent'
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
+                    hasActiveSubItem ? 'font-semibold border' : 'hover:border border-transparent'
                   )}
+                  style={{
+                    backgroundColor: hasActiveSubItem ? 'var(--theme-accent)' : 'transparent',
+                    color: hasActiveSubItem ? '#ffffff' : 'var(--theme-text)',
+                    borderColor: hasActiveSubItem ? 'var(--theme-accent)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => { if (!hasActiveSubItem) e.currentTarget.style.backgroundColor = 'var(--theme-surface)'; }}
+                  onMouseLeave={(e) => { if (!hasActiveSubItem) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   <span>{item.icon}</span>
                   <span className="font-medium text-sm flex-1 text-left">{item.label}</span>
@@ -233,10 +236,15 @@ export function Sidebar() {
                           onClick={closeMobile}
                           className={cn(
                             'flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-sm',
-                            isSubActive
-                              ? 'font-semibold text-primary bg-muted'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            isSubActive ? 'font-semibold' : 'hover:border border-transparent'
                           )}
+                          style={{
+                            backgroundColor: isSubActive ? 'var(--theme-background)' : 'transparent',
+                            color: isSubActive ? 'var(--theme-accent)' : 'var(--theme-text)',
+                            opacity: isSubActive ? 1 : 0.8,
+                          }}
+                          onMouseEnter={(e) => { if (!isSubActive) { e.currentTarget.style.backgroundColor = 'var(--theme-background)'; e.currentTarget.style.opacity = '1'; } }}
+                          onMouseLeave={(e) => { if (!isSubActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.opacity = '0.8'; } }}
                         >
                           {subItem.label}
                         </Link>
@@ -255,10 +263,15 @@ export function Sidebar() {
               onClick={closeMobile}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group',
-                isActive
-                  ? 'font-semibold border bg-primary text-white border-primary'
-                  : 'hover:bg-muted text-foreground border border-transparent'
+                isActive ? 'font-semibold border' : 'hover:border border-transparent'
               )}
+              style={{
+                backgroundColor: isActive ? 'var(--theme-accent)' : 'transparent',
+                color: isActive ? '#ffffff' : 'var(--theme-text)',
+                borderColor: isActive ? 'var(--theme-accent)' : 'transparent',
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--theme-surface)'; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <span>{item.icon}</span>
               <span className="font-medium text-sm">{item.label}</span>
@@ -273,13 +286,14 @@ export function Sidebar() {
       </nav>
 
       {/* User Profile and Logout */}
-      <div className="p-4 border-t space-y-3 border-border">
+      <div className="p-4 border-t space-y-3" style={{ borderColor: 'var(--theme-border)' }}>
         <div className="flex justify-center mb-2">
           <ThemeToggle />
         </div>
-        
         {user && (
-          <div className="px-4 py-3 rounded-lg border flex items-center gap-3 bg-background border-border">
+          <div className="px-4 py-3 rounded-lg border flex items-center gap-3"
+            style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)' }}
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
               {user.avatar ? (
                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
@@ -288,15 +302,18 @@ export function Sidebar() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs mb-1 text-muted-foreground">Logged in as</div>
-              <div className="font-semibold text-sm truncate text-foreground">{user.name}</div>
-              <div className="text-xs text-primary">{user.role.replace('_', ' ').toUpperCase()}</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--theme-text)', opacity: 0.7 }}>Logged in as</div>
+              <div className="font-semibold text-sm truncate" style={{ color: 'var(--theme-text)' }}>{user.name}</div>
+              <div className="text-xs" style={{ color: 'var(--theme-accent)' }}>{user.role.replace('_', ' ').toUpperCase()}</div>
             </div>
           </div>
         )}
         <button
           onClick={logout}
-          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm text-foreground hover:bg-muted hover:text-primary"
+          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm"
+          style={{ color: 'var(--theme-text)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--theme-surface)'; e.currentTarget.style.color = 'var(--theme-accent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--theme-text)'; }}
         >
           <LogOut className="w-4 h-4" />
           <span>Logout</span>

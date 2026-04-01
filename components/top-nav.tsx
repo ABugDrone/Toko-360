@@ -117,26 +117,22 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
   }, [user?.id, user?.department]);
 
   return (
-    <header className="border-b sticky top-0 z-40 transition-colors duration-300" style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
-      <div className="flex items-center justify-between px-6 py-4">
-        {/* Left: Title */}
-        <div>
-          <h1 className="text-xl font-bold transition-colors duration-300" style={{ color: 'var(--theme-text)' }}>{title}</h1>
+    <header className="border-b sticky top-0 z-30" style={{ backgroundColor: 'var(--theme-surface)', borderColor: 'var(--theme-border)' }}>
+      <div className="flex items-center justify-between px-4 py-4">
+        {/* Left: Title — offset on mobile to clear the hamburger button */}
+        <div className="pl-10 md:pl-0">
+          <h1 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>{title}</h1>
         </div>
 
-        {/* Center: Search (optional) */}
+        {/* Center: Search (hidden on mobile) */}
         <div className="flex-1 max-w-xs mx-8 hidden md:block">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.5 }} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--theme-text)', opacity: 0.5 }} />
             <input
               type="text"
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm transition-colors duration-300 focus:outline-none focus:ring-2"
-              style={{ 
-                backgroundColor: 'var(--theme-background)', 
-                borderColor: 'var(--theme-border)', 
-                color: 'var(--theme-text)',
-              }}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2"
+              style={{ backgroundColor: 'var(--theme-background)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
             />
           </div>
         </div>
@@ -149,7 +145,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
               {/* Admin Notification Icons */}
               {isAdmin && (
                 <>
-                  {/* Attendance Approvals - Validates: Requirements 2.1, 2.5 */}
                   <NotificationIcon
                     icon={ClipboardCheck}
                     count={counts.pendingAttendanceApprovals}
@@ -157,8 +152,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
                     href="/admin/approvals/attendance"
                     hasError={!counts.isConnected}
                   />
-                  
-                  {/* Report Approvals - Validates: Requirements 3.1, 3.5 */}
                   <NotificationIcon
                     icon={FileText}
                     count={counts.pendingReportApprovals}
@@ -172,7 +165,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
               {/* Staff Notification Icons */}
               {!isAdmin && (
                 <>
-                  {/* Attendance Status - Validates: Requirements 4.1, 4.4, 4.6 */}
                   <NotificationIcon
                     icon={CheckCircle}
                     count={counts.unviewedAttendanceStatus}
@@ -181,8 +173,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
                     onClick={handleAttendanceClick}
                     hasError={!counts.isConnected}
                   />
-                  
-                  {/* Report Status - Validates: Requirements 5.1, 5.4, 5.6 */}
                   <NotificationIcon
                     icon={FileCheck}
                     count={counts.unviewedReportStatus}
@@ -194,9 +184,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
                 </>
               )}
               
-              {/* Universal Notification Icons - For all users */}
-              
-              {/* Events - Validates: Requirements 6.1, 6.4 */}
               <NotificationIcon
                 icon={Calendar}
                 count={counts.unviewedEvents}
@@ -205,8 +192,6 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
                 onClick={handleEventsClick}
                 hasError={!counts.isConnected}
               />
-              
-              {/* Messages - Validates: Requirements 7.1, 7.6 */}
               <NotificationIcon
                 icon={MessageSquare}
                 count={counts.unreadMessages}
@@ -224,12 +209,11 @@ export function TopNav({ title = 'Staff Portal', searchPlaceholder = 'Search rep
 
           {/* User Avatar */}
           {user && (
-            <div className="flex items-center gap-3 pl-4 border-l transition-colors duration-300" style={{ borderColor: 'var(--theme-border)' }}>
+            <div className="flex items-center gap-3 pl-4 border-l" style={{ borderColor: 'var(--theme-border)' }}>
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-semibold transition-colors duration-300" style={{ color: 'var(--theme-text)' }}>{user.name}</div>
-                <div className="text-xs uppercase transition-colors duration-300" style={{ color: 'var(--theme-text)', opacity: 0.6 }}>{user.role.replace('_', ' ')}</div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--theme-text)' }}>{user.name}</div>
+                <div className="text-xs uppercase" style={{ color: 'var(--theme-text)', opacity: 0.6 }}>{user.role.replace('_', ' ')}</div>
               </div>
-              {/* Profile Image */}
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
